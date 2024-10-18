@@ -1,6 +1,6 @@
-# Template para criar backends usando express
+# Backend de plataforma de apostas para projeto universitário
 
-Este é um projeto apenas de "esqueleto" para você criar seu backend em TypeScript usando express.
+Aqui serão implementadas as rotas do backend da plataforma de apostas
 
 ## Instalando as dependências
 
