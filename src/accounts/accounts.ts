@@ -27,6 +27,18 @@ export namespace AccountsHandler {
         accountsDatabase.push(ua);
         return accountsDatabase.length;
     }
+ 
+      /**
+     * Verifica se o e-mail e senha correspondem a uma conta existente.
+     * @param email Email do usuário
+     * @param password Senha do usuário
+     * @returns @type { boolean } true se as credenciais forem válidas, false caso contrário.
+     */
+    export function authenticateUser(email: string, password: string): boolean {
+        return accountsDatabase.some(
+            account => account.email === email && account.password === password
+        );
+    }
 
     /**
      * Função para tratar a rota HTTP /signUp. 
@@ -35,26 +47,36 @@ export namespace AccountsHandler {
      */
     export const createAccountRoute: RequestHandler = (req: Request, res: Response) => {
         // Passo 1 - Receber os parametros para criar a conta
-        const pName = req.get('name');
-        const pEmail = req.get('email');
-        const pPassword = req.get('password');
-        const pBirthdate = req.get('birthdate');
-        
-        if(pName && pEmail && pPassword && pBirthdate){
-            // prosseguir com o cadastro... 
+          const { name, email, password, birthdate } = req.body;
+
+        if (name && email && password && birthdate) {
+            // Prosseguir com o cadastro
             const newAccount: UserAccount = {
-                name: pName,
-                email: pEmail, 
-                password: pPassword,
-                birthdate: pBirthdate
-            }
+                name,
+                email,
+                password,
+                birthdate
+            };           
             const ID = saveNewAccount(newAccount);
-            res.statusCode = 200; 
-            res.send(`Nova conta adicionada. Código: ${ID}`);
+            res.status(200).send(`Nova conta adicionada. Código: ${ID}`);
         }else{
-            res.statusCode = 400;
-            res.send("Parâmetros inválidos ou faltantes.");
+            res.status(400).send("Parâmetros inválidos ou faltantes.");
         }
     }
 
+    export const loginRoute: RequestHandler = (req: Request, res: Response) => {
+       //receber parametros
+       const { email, password } = req.body;
+
+       if (email && password) {
+            const isAuthenticated = authenticateUser(email, password);
+            if (isAuthenticated) {
+                res.status(200).send("Login bem-sucedido!");
+            } else {
+                res.status(401).send("Credenciais inválidas.");
+            }
+        } else {
+            res.status(400).send("Parâmetros de login faltando.");
+        }
+    };
 }

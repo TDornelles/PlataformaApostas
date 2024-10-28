@@ -6,6 +6,8 @@ const port = 3000;
 const server = express();
 const routes = Router();
 
+server.use(express.json());
+
 // definir as rotas. 
 // a rota tem um verbo/método http (GET, POST, PUT, DELETE)
 routes.get('/', (req: Request, res: Response)=>{
@@ -13,8 +15,11 @@ routes.get('/', (req: Request, res: Response)=>{
     res.send('Acesso não permitido.');
 });
 
-// vamos organizar as rotas em outro local 
+//rota para cadastro
 routes.put('/signUp', AccountsHandler.createAccountRoute);
+
+//rota para login
+routes.post('/login', AccountsHandler.loginRoute)
 
 server.use(routes);
 
