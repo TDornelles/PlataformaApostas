@@ -1,6 +1,7 @@
 import express from "express";
 import {Request, Response, Router} from "express";
 import { AccountsHandler } from "./accounts/accounts";
+import { EventsHandler } from "./events/events";
 
 const port = 3000; 
 const server = express();
@@ -20,6 +21,9 @@ routes.put('/signUp', AccountsHandler.createAccountRoute);
 
 //rota para login
 routes.post('/login', AccountsHandler.loginRoute)
+
+//rota para criação de evnetos
+routes.post('/addNewEvent', EventsHandler.addNewEventRoute);
 
 server.use(routes);
 
