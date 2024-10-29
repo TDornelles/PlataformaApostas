@@ -4,6 +4,8 @@ import { Client } from 'ssh2';
 import fs from 'fs';
 import { AccountsHandler } from "./accounts/accounts";
 import { EventsHandler } from "./events/events";
+import { WalletHandler } from './wallet/wallet';
+import { BettingHandler } from './betting/betting';
 
 const port = 3000; 
 const server = express();
@@ -22,7 +24,7 @@ routes.get('/', (req: Request, res: Response)=>{
 routes.put('/signUp', AccountsHandler.createAccountRoute);
 
 //rota para login
-routes.post('/login', AccountsHandler.loginRoute)
+routes.post('/login', AccountsHandler.loginRoute);
 
 //rota para criação de eventos
 routes.post('/addNewEvent', EventsHandler.addNewEventRoute);
@@ -30,9 +32,24 @@ routes.post('/addNewEvent', EventsHandler.addNewEventRoute);
 //rota para listar eventos
 routes.get('/getEvents', EventsHandler.getEventsRoute);
 
-routes.post('/evaluateNewEvent', EventsHandler.evaluateNewEventRoute)
+routes.post('/evaluateNewEvent', EventsHandler.evaluateNewEventRoute);
 
-routes.post('/deleteEvent', EventsHandler.deleteEventRoute)
+routes.post('/deleteEvent', EventsHandler.deleteEventRoute);
+
+// Rota para adicionar fundos
+routes.post('/addFunds', WalletHandler.addFunds);
+
+// Rota para sacar fundos
+routes.post('/withdrawFunds', WalletHandler.withdrawFunds);
+
+// Rota para apostar em um evento
+routes.post('/betOnEvent', BettingHandler.betOnEvent);
+
+// Rota para encerrar um evento
+routes.post('/finishEvent', BettingHandler.finishEvent);
+
+// Rota para buscar eventos por palavras-chave
+routes.get('/searchEvent', BettingHandler.searchEvent);
 
 // Configuração da conexão SSH
 export const connectToSSH = async (): Promise<string> => {
