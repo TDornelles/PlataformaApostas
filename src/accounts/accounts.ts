@@ -13,6 +13,7 @@ export namespace AccountsHandler {
         email:string;
         password:string;
         birthdate:string; 
+        isAdmin:boolean;
     };
 
     // Array que representa uma coleção de contas. 
@@ -47,7 +48,7 @@ export namespace AccountsHandler {
      */
     export const createAccountRoute: RequestHandler = (req: Request, res: Response) => {
         // Passo 1 - Receber os parametros para criar a conta
-          const { name, email, password, birthdate } = req.body;
+          const { name, email, password, birthdate, isAdmin } = req.body;
 
         if (name && email && password && birthdate) {
             // Prosseguir com o cadastro
@@ -55,7 +56,8 @@ export namespace AccountsHandler {
                 name,
                 email,
                 password,
-                birthdate
+                birthdate,
+                isAdmin
             };           
             const ID = saveNewAccount(newAccount);
             res.status(200).send(`Nova conta adicionada. Código: ${ID}`);

@@ -13,6 +13,19 @@ const routes = Router();
 
 server.use(express.json());
 
+const pool = require('./db/db');
+
+(async () => {
+  try {
+    const result = await pool.query('SELECT NOW() AS current_time');
+    console.log('Conexão bem-sucedida:', result.rows[0].current_time);
+  } catch (err) {
+    console.error('Erro ao conectar:', err);
+  } finally {
+    pool.end(); // Encerra a conexão após o teste
+  }
+})();
+
 // definir as rotas. 
 // a rota tem um verbo/método http (GET, POST, PUT, DELETE)
 routes.get('/', (req: Request, res: Response)=>{
