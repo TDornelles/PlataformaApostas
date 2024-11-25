@@ -33,9 +33,18 @@ export namespace AccountsHandler {
             VALUES ($1, $2, $3, $4, $5)
             RETURNING id;
         `;
+
         const values = [ua.name, ua.email, ua.password, ua.birthdate, ua.isAdmin];
-        const result = await pool.query(query, values);
-        return result.rows[0].id; // Retorna o ID gerado.
+        console.log("Valores enviados para o banco:", values);
+
+        try {
+            const result = await pool.query(query, values);
+            console.log("Resultado da query:", result.rows);
+            return result.rows[0].id; // Retorna o ID gerado.
+        } catch (error) {
+            console.error("Erro ao executar a query:", error);
+            throw new Error("Erro ao salvar a conta no banco de dados.");
+        }
     }
 
 
