@@ -16,6 +16,9 @@ export namespace AccountsHandler {
         isAdmin:boolean;
     };
 
+    
+    const pool = require('../db/db');
+
     // Array que representa uma coleção de contas. 
     let accountsDatabase: UserAccount[] = [];
 
@@ -24,11 +27,18 @@ export namespace AccountsHandler {
      * @param ua conta de usuário do tipo @type {UserAccount}
      * @returns @type { number } o código da conta cadastrada como posição no array.
      */
-    export function saveNewAccount(ua: UserAccount) : number{
-        accountsDatabase.push(ua);
-        return accountsDatabase.length;
+    export async function saveNewAccount(ua: UserAccount): Promise<number> {
+        const query = `
+            INSERT INTO UserAccount (name, email, password, birthdate, isAdmin)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING id;
+        `;
+        const values = [ua.name, ua.email, ua.password, ua.birthdate, ua.isAdmin];
+        const result = await pool.query(query, values);
+        return result.rows[0].id; // Retorna o ID gerado.
     }
- 
+
+
       /**
      * Verifica se o e-mail e senha correspondem a uma conta existente.
      * @param email Email do usuário
@@ -51,6 +61,21 @@ export namespace AccountsHandler {
           const { name, email, password, birthdate, isAdmin } = req.body;
 
         if (name && email && password && birthdate) {
+
+            // Validar que o birthdate não está no futuro
+            const birthDateObj = new Date(birthdate);
+            const currentDate = new Date();
+
+            if (isNaN(birthDateObj.getTime())) {
+                res.status(400).send("Data de nascimento inválida.");
+                return;
+            }
+
+            if (birthDateObj > currentDate) {
+                res.status(400).send("Data de nascimento não pode estar no futuro.");
+                return;
+            }
+
             // Prosseguir com o cadastro
             const newAccount: UserAccount = {
                 name,
