@@ -45,6 +45,8 @@ routes.post('/addNewEvent', EventsHandler.addNewEventRoute);
 //rota para listar eventos
 routes.get('/getEvents', EventsHandler.getEventsRoute);
 
+routes.get('/getEventsList', EventsHandler.getEventsListRoute);
+
 routes.post('/evaluateNewEvent', EventsHandler.evaluateNewEventRoute);
 
 routes.post('/deleteEvent', EventsHandler.deleteEventRoute);
@@ -59,7 +61,7 @@ routes.post('/withdrawFunds', WalletHandler.withdrawFunds);
 routes.post('/betOnEvent', BettingHandler.betOnEvent);
 
 // Rota para encerrar um evento
-routes.post('/finishEvent', BettingHandler.finishEvent);
+routes.post('/finishEvent', EventsHandler.finishEventRoute);
 
 // Rota para buscar eventos por palavras-chave
 routes.get('/searchEvent', BettingHandler.searchEvent);

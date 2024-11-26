@@ -1,5 +1,4 @@
 import {Request, RequestHandler, Response} from "express";
-import {connectToSSH} from  '../server';
 
 export namespace EventsHandler {
 
@@ -100,7 +99,7 @@ export namespace EventsHandler {
         const today = new Date();
         
         try {
-            let query = `SELECT * FROM "Event" WHERE 1=1`; // Base da consulta
+            let query = `SELECT * FROM Event WHERE 1=1`; // Base da consulta
 
             // Condicional para filtrar pelo status
             if (status === "pending") {
@@ -134,12 +133,42 @@ export namespace EventsHandler {
         }
     };
 
+     /**
+     * Função para obter uma lista simplificada de eventos com apenas ID e título.
+     * @returns Promise<Array<{id: number, title: string}>>
+     */
+     const getEventsList = async (): Promise<Array<{id: number, title: string}>> => {
+        const query = 'SELECT id, title, approved FROM Event ORDER BY id';
+
+        try {
+            const result = await pool.query(query);
+            return result.rows;
+        } catch (error) {
+            console.error("Erro ao buscar lista de eventos:", error);
+            throw new Error("Erro ao buscar lista de eventos.");
+        }
+    };
+
+    /**
+     * Função para tratar a rota HTTP /eventsList.
+     * @param req Requisição HTTP do tipo @type {Request}
+     * @param res Resposta HTTP do tipo @type {Response}
+     */
+    export const getEventsListRoute: RequestHandler = async (_req: Request, res: Response) => {
+        try {
+            const events = await getEventsList();
+            res.status(200).json(events);
+        } catch (error) {
+            res.status(500).send("Erro ao buscar lista de eventos.");
+        }
+    };
+
         /**
      * Função para deletar um evento com base no ID.
      * @param eventId ID do evento a ser deletado.
      * @returns Promise<boolean> Retorna verdadeiro se o evento foi deletado, falso caso contrário.
      */
-    const deleteEvent = (eventId: number): Promise<boolean> => {
+    const deleteEvent = async (eventId: number): Promise<boolean> => {
         const query = "DELETE FROM Event WHERE id = $1 RETURNING id";
         const values = [eventId];
 
@@ -188,29 +217,94 @@ export namespace EventsHandler {
      * @param req Requisição HTTP do tipo @type {Request}
      * @param res Resposta HTTP do tipo @type {Response}
      */
-    export const evaluateNewEventRoute: RequestHandler = (req: Request, res: Response) => {
+    export const evaluateNewEventRoute: RequestHandler = async (req: Request, res: Response) => {
         const { id, approve } = req.body;
-
+      
         // Validar se o ID é um número válido
-        if (typeof id !== "number" || id <= 0 || id > pendingEvents.length) {
-            res.status(400).send("ID inválido ou fora dos limites.");
+        if (typeof id !== "number" || id <= 0) {
+          res.status(400).send("ID inválido.");
+          return;
+        }
+      
+        // Validar se approve é booleano
+        if (typeof approve !== "boolean") {
+          res.status(400).send("O campo 'approve' deve ser um booleano.");
+          return;
+        }
+      
+        try {
+          // Verificar se o evento existe na tabela de pendentes
+          const pendingEventQuery = `SELECT * FROM Event WHERE id = $1`;
+          const pendingEventResult = await pool.query(pendingEventQuery, [id]);
+      
+          if (pendingEventResult.rowCount === 0) {
+            res.status(404).send(`Evento com ID ${id} não encontrado.`);
+            return;
+          }
+      
+          if (approve) {
+            // Aprovar o evento
+            const approveQuery = `UPDATE Event SET approved = TRUE WHERE id = $1`;
+            await pool.query(approveQuery, [id]);
+            res.status(200).send(`Evento com ID ${id} aprovado com sucesso.`);
+          } else {
+            // Rejeitar o evento
+            const deleteQuery = `DELETE FROM Event WHERE id = $1`;
+            await pool.query(deleteQuery, [id]);
+            res.status(200).send(`Evento com ID ${id} rejeitado e removido.`);
+          }
+        } catch (error) {
+          console.error("Erro ao avaliar evento:", error);
+          res.status(500).send("Erro ao processar a solicitação.");
+        }
+      };
+
+          /**
+     * Função para finalizar um evento e atualizar seu status.
+     * @param eventId ID do evento a ser finalizado
+     * @returns Promise<boolean> Retorna verdadeiro se o evento foi finalizado com sucesso
+     */
+    const finishEvent = async (eventId: number): Promise<boolean> => {
+        const query = `
+            UPDATE Event 
+            SET status = 'finished', 
+                finishedAt = CURRENT_TIMESTAMP 
+            WHERE id = $1 
+            AND status = 'approved' 
+            RETURNING id`;
+        const values = [eventId];
+
+        try {
+            const result = await pool.query(query, values);
+            return result.rowCount > 0;
+        } catch (error) {
+            console.error("Erro ao tentar finalizar o evento:", error);
+            throw new Error("Erro ao finalizar o evento.");
+        }
+    };
+
+    /**
+     * Função para tratar a rota HTTP /finishEvent.
+     * @param req Requisição HTTP do tipo @type {Request}
+     * @param res Resposta HTTP do tipo @type {Response}
+     */
+    export const finishEventRoute: RequestHandler = async (req: Request, res: Response) => {
+        const { eventId } = req.body;
+
+        if (!eventId) {
+            res.status(400).send("O ID do evento é obrigatório.");
             return;
         }
 
-        const eventIndex = id - 1;
-        const event = pendingEvents[eventIndex];
-
-        if (approve === true) {
-            // Aprovar evento e mover para a lista de eventos aprovados
-            approvedEvents.push(event);
-            pendingEvents.splice(eventIndex, 1);
-            res.status(200).send(`Evento ID ${id} aprovado com sucesso.`);
-        } else if (approve === false) {
-            // Rejeitar evento e removê-lo da lista de pendentes
-            pendingEvents.splice(eventIndex, 1);
-            res.status(200).send(`Evento ID ${id} rejeitado e removido da lista de espera.`);
-        } else {
-            res.status(400).send("Parâmetro de aprovação inválido.");
+        try {
+            const success = await finishEvent(eventId);
+            if (success) {
+                res.status(200).send(`Evento com ID ${eventId} finalizado com sucesso.`);
+            } else {
+                res.status(404).send("Evento não encontrado ou não está aprovado.");
+            }
+        } catch (error) {
+            res.status(500).send("Erro ao tentar finalizar o evento.");
         }
     };
 

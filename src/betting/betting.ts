@@ -12,8 +12,6 @@ export namespace BettingHandler {
         amount: number;
     };
 
-    // Array para armazenar as apostas
-    let bets: Bet[] = [];
 
     /**
      * Função para o serviço "Apostar em evento"
@@ -22,15 +20,7 @@ export namespace BettingHandler {
      */
     export const betOnEvent: RequestHandler = (req: Request, res: Response) => {
         const { email, eventId, amount } = req.body;
-    }
-
-    /**
-     * Função para encerrar o evento e distribuir fundos
-     * @param req Requisição HTTP contendo eventId e resultado
-     * @param res Resposta HTTP
-     */
-    export const finishEvent: RequestHandler = (req: Request, res: Response) => {
-        const { eventId, result } = req.body;
+        
     }
 
     /**
