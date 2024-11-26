@@ -23,21 +23,6 @@ export namespace EventsHandler {
 
     const pool = require('../db/db');
 
-    // Array para armazenar os eventos em lista de espera para aprovação
-    let pendingEvents: Event[] = [];
-
-    // Array para armazenar os eventos em lista de espera para aprovação
-    let approvedEvents: Event[] = [];
-
-    /**
-     * Função para adicionar um novo evento à lista de espera.
-     * @param event Evento do tipo @type {Event}
-     * @returns O índice do evento adicionado
-     */
-    export function addEventToPendingList(event: Event): number {
-        pendingEvents.push(event);
-        return pendingEvents.length;
-    }
 
     /**
      * Função para tratar a rota HTTP /addNewEvent.
