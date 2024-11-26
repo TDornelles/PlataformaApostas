@@ -22,6 +22,8 @@ export namespace EventsHandler {
         organizer: string;
     };
 
+    const pool = require('../db/db');
+
     // Array para armazenar os eventos em lista de espera para aprovação
     let pendingEvents: Event[] = [];
 
@@ -43,95 +45,143 @@ export namespace EventsHandler {
      * @param req Requisição HTTP do tipo @type {Request}
      * @param res Resposta HTTP do tipo @type {Response}
      */
-    export const addNewEventRoute: RequestHandler = (req: Request, res: Response) => {
+    export const addNewEventRoute: RequestHandler = async (req, res) => {
         const { title, description, quotaValue, bettingPeriod, eventDate, organizer } = req.body;
-
-        // Validando os campos com as regras especificadas
+    
+        // Validação dos parâmetros de entrada
         if (
             typeof title === "string" && title.length <= 50 &&
             typeof description === "string" && description.length <= 150 &&
             typeof quotaValue === "number" && quotaValue >= 1 &&
-            bettingPeriod && bettingPeriod.start && bettingPeriod.end &&
-            eventDate && eventDate.day && eventDate.month && eventDate.year &&
+            bettingPeriod && typeof bettingPeriod.start === "string" && typeof bettingPeriod.end === "string" &&
+            eventDate && typeof eventDate.day === "number" && typeof eventDate.month === "number" && typeof eventDate.year === "number" &&
             typeof organizer === "string"
         ) {
-            const newEvent: Event = {
+            const query = `
+                INSERT INTO Event (title, description, quotaValue, bettingPeriodStart, bettingPeriodEnd, eventDateDay, eventDateMonth, eventDateYear, organizer)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                RETURNING id;
+            `;
+            const values = [
                 title,
                 description,
                 quotaValue,
-                bettingPeriod,
-                eventDate,
+                bettingPeriod.start,
+                bettingPeriod.end,
+                eventDate.day,
+                eventDate.month,
+                eventDate.year,
                 organizer
-            };
-            const ID = addEventToPendingList(newEvent);
-            res.status(200).send(`Novo evento adicionado à lista de espera. Código: ${ID}`);
+            ];
+    
+            try {
+                // Inserção no banco de dados
+                const result = await pool.query(query, values);
+                const newEventId = result.rows[0].id;
+    
+                res.status(200).send(`Novo evento adicionado com sucesso. Código: ${newEventId}`);
+            } catch (error) {
+                console.error("Erro ao inserir evento no banco de dados:", error);
+                res.status(500).send("Erro ao adicionar o evento no banco de dados.");
+            }
         } else {
             res.status(400).send("Parâmetros inválidos ou faltantes.");
         }
     };
+    
 
     /**
      * Função para tratar a rota HTTP /getEvents.
      * @param req Requisição HTTP do tipo @type {Request}
      * @param res Resposta HTTP do tipo @type {Response}
      */
-    export const getEventsRoute: RequestHandler = (req: Request, res: Response) => {
-        const { status } = req.query;
+    export const getEventsRoute: RequestHandler = async (req: Request, res: Response) => {
+        const { status } = req.query; // status pode ser 'pending', 'approved' ou 'past'
         const today = new Date();
+        
+        try {
+            let query = `SELECT * FROM "Event" WHERE 1=1`; // Base da consulta
 
-        let filteredEvents: Event[] = [];
+            // Condicional para filtrar pelo status
+            if (status === "pending") {
+                query += ` AND status = 'pending'`;  // Supondo que exista uma coluna status na tabela Event
+            } else if (status === "approved") {
+                query += ` AND status = 'approved' AND 
+                            (eventDateYear > $1 OR 
+                            (eventDateYear = $1 AND eventDateMonth > $2) OR 
+                            (eventDateYear = $1 AND eventDateMonth = $2 AND eventDateDay >= $3))`;  // Filtra eventos aprovados futuros
+            } else if (status === "past") {
+                query += ` AND status = 'approved' AND 
+                            (eventDateYear < $1 OR 
+                            (eventDateYear = $1 AND eventDateMonth < $2) OR 
+                            (eventDateYear = $1 AND eventDateMonth = $2 AND eventDateDay < $3))`;  // Filtra eventos aprovados passados
+            } else {
+                res.status(400).send("Status inválido. Use 'pending', 'approved' ou 'past'.");
+                return;
+            }
 
-        if (status === "pending") {
-            filteredEvents = pendingEvents;
-        } else if (status === "approved") {
-            filteredEvents = approvedEvents.filter(event => {
-                const eventDate = new Date(event.eventDate.year, event.eventDate.month - 1, event.eventDate.day);
-                return eventDate >= today;
-            });
-        } else if (status === "past") {
-            filteredEvents = approvedEvents.filter(event => {
-                const eventDate = new Date(event.eventDate.year, event.eventDate.month - 1, event.eventDate.day);
-                return eventDate < today;
-            });
-        } else {
-            res.status(400).send("Status inválido. Use 'pending', 'approved' ou 'past'.");
-            return;
+            // Parâmetros para evitar SQL injection
+            const values = [today.getFullYear(), today.getMonth() + 1, today.getDate()];
+            
+            // Executar a consulta SQL
+            const result = await pool.query(query, values);
+
+            // Retorna os eventos filtrados
+            res.status(200).json(result.rows);
+        } catch (error) {
+            console.error("Erro ao acessar eventos:", error);
+            res.status(500).send("Erro ao acessar eventos no banco de dados.");
         }
-
-        res.status(200).json(filteredEvents);
     };
 
-    /**
-     * Função para deletar um evento da lista.
+        /**
+     * Função para deletar um evento com base no ID.
      * @param eventId ID do evento a ser deletado.
-     * @param organizer Nome do organizador que solicitou a remoção.
+     * @returns Promise<boolean> Retorna verdadeiro se o evento foi deletado, falso caso contrário.
      */
-    export function deleteEvent(eventId: number, organizer: string): boolean {
-       // const eventIndex = pendingEvents.findIndex(event => event.id === eventId);
+    const deleteEvent = (eventId: number): Promise<boolean> => {
+        const query = "DELETE FROM Event WHERE id = $1 RETURNING id";
+        const values = [eventId];
 
-       // pendingEvents.splice(eventIndex, 1);
-        return true;
-    }
+        return pool.query(query, values)
+            .then((result: { rowCount: number; }) => {
+                // Verifica se algum evento foi deletado
+                return result.rowCount > 0;
+            })
+            .catch((error: any) => {
+                console.error("Erro ao tentar deletar o evento:", error);
+                throw new Error("Erro ao deletar o evento.");
+            });
+    };
+
 
     /**
      * Função para tratar a rota HTTP /deleteEvent.
      * @param req Requisição HTTP do tipo @type {Request}
      * @param res Resposta HTTP do tipo @type {Response}
      */
-    export const deleteEventRoute: RequestHandler = (req: Request, res: Response) => {
-        const { eventId, organizer } = req.body;
+    export const deleteEventRoute = (req: Request, res: Response): void => {
+        const { eventId } = req.body; // Recebe apenas o eventId no corpo da requisição
 
-        try {
-            const success = deleteEvent(eventId, organizer);
-            if (success) {
-                res.status(200).send(`Evento com ID ${eventId} deletado com sucesso.`);
-            } else {
-                res.status(404).send("Evento não encontrado.");
-            }
-        } catch (error) {
-            res.status(400).send("Erro desconhecido.");
+        if (!eventId) {
+            res.status(400).send("O ID do evento é obrigatório.");
+            return; 
         }
+
+        // Chama a função para deletar o evento e processa a resposta
+        deleteEvent(eventId)
+            .then(success => {
+                if (success) {
+                    res.status(200).send(`Evento com ID ${eventId} deletado com sucesso.`);
+                } else {
+                    res.status(404).send("Evento não encontrado.");
+                }
+            })
+            .catch(error => {
+                res.status(500).send("Erro desconhecido ao tentar deletar o evento.");
+            });
     };
+
 
     /**
      * Função para avaliar um evento e decidir se será aprovado ou rejeitado.
@@ -163,4 +213,5 @@ export namespace EventsHandler {
             res.status(400).send("Parâmetro de aprovação inválido.");
         }
     };
+
 }

@@ -1,4 +1,5 @@
 import {Request, RequestHandler, Response} from "express";
+import jwt from "jsonwebtoken";
 
     /*
         Nampespace que contém tudo sobre "contas de usuários"
