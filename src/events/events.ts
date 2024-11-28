@@ -63,7 +63,6 @@ export const addNewEventRoute: RequestHandler = async (req, res) => {
 
 
     
-
     /**
      * Função para tratar a rota HTTP /getEvents.
      * @param req Requisição HTTP do tipo @type {Request}
@@ -75,27 +74,29 @@ export const addNewEventRoute: RequestHandler = async (req, res) => {
         
         try {
             let query = `SELECT * FROM Event WHERE 1=1`; // Base da consulta
+            let values: any[] = [];
 
             // Condicional para filtrar pelo status
             if (status === "pending") {
-                query += ` AND status = 'pending'`;  // Supondo que exista uma coluna status na tabela Event
+                query += ` AND approval_status = 1`;  // Status pendente
             } else if (status === "approved") {
-                query += ` AND status = 'approved' AND 
+                query += ` AND approval_status = 2 AND 
                             (eventDateYear > $1 OR 
                             (eventDateYear = $1 AND eventDateMonth > $2) OR 
-                            (eventDateYear = $1 AND eventDateMonth = $2 AND eventDateDay >= $3))`;  // Filtra eventos aprovados futuros
+                            (eventDateYear = $1 AND eventDateMonth = $2 AND eventDateDay >= $3))`;
+                values = [today.getFullYear(), today.getMonth() + 1, today.getDate()];
             } else if (status === "past") {
-                query += ` AND status = 'approved' AND 
+                query += ` AND approval_status = 2 AND 
                             (eventDateYear < $1 OR 
                             (eventDateYear = $1 AND eventDateMonth < $2) OR 
-                            (eventDateYear = $1 AND eventDateMonth = $2 AND eventDateDay < $3))`;  // Filtra eventos aprovados passados
+                            (eventDateYear = $1 AND eventDateMonth = $2 AND eventDateDay < $3))`;
+                values = [today.getFullYear(), today.getMonth() + 1, today.getDate()];
+            } else if (status === "denied") {
+                query += ` AND approval_status = 3`;  // Status negado
             } else {
-                res.status(400).send("Status inválido. Use 'pending', 'approved' ou 'past'.");
+                res.status(400).send("Status inválido. Use 'pending', 'approved', 'denied' ou 'past'.");
                 return;
             }
-
-            // Parâmetros para evitar SQL injection
-            const values = [today.getFullYear(), today.getMonth() + 1, today.getDate()];
             
             // Executar a consulta SQL
             const result = await pool.query(query, values);
@@ -108,33 +109,32 @@ export const addNewEventRoute: RequestHandler = async (req, res) => {
         }
     };
 
-     /**
-     * Função para obter uma lista simplificada de eventos com apenas ID e título.
-     * @returns Promise<Array<{id: number, title: string}>>
-     */
-     const getEventsList = async (): Promise<Array<{id: number, title: string}>> => {
-        const query = 'SELECT id, title, approved FROM Event ORDER BY id';
-
-        try {
-            const result = await pool.query(query);
-            return result.rows;
-        } catch (error) {
-            console.error("Erro ao buscar lista de eventos:", error);
-            throw new Error("Erro ao buscar lista de eventos.");
-        }
-    };
-
     /**
-     * Função para tratar a rota HTTP /eventsList.
+     * Função para retornar a lista de eventos.
      * @param req Requisição HTTP do tipo @type {Request}
      * @param res Resposta HTTP do tipo @type {Response}
      */
-    export const getEventsListRoute: RequestHandler = async (_req: Request, res: Response) => {
+    export const getEventsListRoute: RequestHandler = async (req: Request, res: Response) => {
         try {
-            const events = await getEventsList();
-            res.status(200).json(events);
+            // Consulta SQL para pegar os eventos
+            const query = `
+                SELECT id, title, description, approval_status
+                FROM Event;
+            `;
+
+            // Executar a consulta SQL
+            const result = await pool.query(query);
+
+            // Verificar se existem eventos
+            if (result.rowCount > 0) {
+                // Retorna os eventos encontrados como JSON
+                res.status(200).json(result.rows);
+            } else {
+                res.status(404).send('Nenhum evento encontrado.');
+            }
         } catch (error) {
-            res.status(500).send("Erro ao buscar lista de eventos.");
+            console.error("Erro ao acessar eventos:", error);
+            res.status(500).send("Erro ao acessar eventos no banco de dados.");
         }
     };
 
