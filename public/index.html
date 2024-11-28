@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Eventos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .switch-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .events-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .event-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+
+        .event-card h3 {
+            margin: 0 0 10px 0;
+        }
+
+        .event-info {
+            display: grid;
+            gap: 5px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+            color: #666;
+        }
+
+        .error {
+            color: red;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Eventos Disponíveis</h1>
+        <div class="switch-container">
+            <span>Ordenar por:</span>
+            <label class="switch">
+                <input type="checkbox" id="sortToggle">
+                <span class="slider"></span>
+            </label>
+            <span id="sortLabel">Data de Atualização</span>
+        </div>
+    </div>
+
+    <div id="eventsList" class="events-list">
+        <div class="loading">Carregando eventos...</div>
+    </div>
+
+    <script>
+        let events = [];
+        const eventsListElement = document.getElementById('eventsList');
+        const sortToggle = document.getElementById('sortToggle');
+        const sortLabel = document.getElementById('sortLabel');
+
+        async function fetchEvents() {
+            try {
+                const response = await fetch('/eventsList');
+                if (!response.ok) throw new Error('Falha ao carregar eventos');
+                events = await response.json();
+                sortAndDisplayEvents();
+            } catch (error) {
+                console.error('Erro:', error);
+                eventsListElement.innerHTML = '<div class="error">Erro ao carregar eventos. Tente novamente mais tarde.</div>';
+            }
+        }
+
+        function sortAndDisplayEvents() {
+            const sortedEvents = [...events];
+            
+            if (sortToggle.checked) {
+                // Por enquanto, mantém ordenação por data de atualização
+                sortedEvents.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+                sortLabel.textContent = "Mais Recentes";
+            } else {
+                // Ordenar por última atualização
+                sortedEvents.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+                sortLabel.textContent = "Data de Atualização";
+            }
+
+            eventsListElement.innerHTML = sortedEvents.map(event => `
+                <div class="event-card">
+                    <h3>${event.title}</h3>
+                    <div class="event-info">
+                        <p>${event.description || 'Sem descrição'}</p>
+                        <p>Organizador: ${event.organizer || 'Não especificado'}</p>
+                        <p>Valor da Cota: R$ ${event.quotaValue?.toFixed(2) || '0.00'}</p>
+                        <p>Status: ${getStatusText(event.approvalStatus)}</p>
+                        <p>Última atualização: ${new Date(event.updatedAt).toLocaleString()}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getStatusText(status) {
+            const statusMap = {
+                1: 'Pendente',
+                2: 'Aprovado',
+                3: 'Negado',
+                4: 'Finalizado'
+            };
+            return statusMap[status] || 'Desconhecido';
+        }
+
+        // Event Listeners
+        sortToggle.addEventListener('change', sortAndDisplayEvents);
+
+        // Initial load
+        fetchEvents();
+
+        // Atualizar a lista a cada 30 segundos
+        setInterval(fetchEvents, 30000);
+    </script>
+</body>
+</html> 

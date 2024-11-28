@@ -6,6 +6,7 @@ import { AccountsHandler } from "./accounts/accounts";
 import { EventsHandler } from "./events/events";
 import { WalletHandler } from './wallet/wallet';
 import { BettingHandler } from './betting/betting';
+import path from 'path';
 
 const port = 3000; 
 const server = express();
@@ -15,6 +16,7 @@ server.use(express.json());
 
 const pool = require('./db/db');
 
+server.use(express.static(path.join(__dirname, '../public')));
 //(async () => {
 //  try {
 //    const result = await pool.query('SELECT NOW() AS current_time');

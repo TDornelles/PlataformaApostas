@@ -130,7 +130,7 @@ export const addNewEventRoute: RequestHandler = async (req, res) => {
                 // Retorna os eventos encontrados como JSON
                 res.status(200).json(result.rows);
             } else {
-                res.status(404).send('Nenhum evento encontrado.');
+                res.status(200).json([]); // Retorna array vazio ao invés de erro
             }
         } catch (error) {
             console.error("Erro ao acessar eventos:", error);
@@ -147,15 +147,13 @@ export const addNewEventRoute: RequestHandler = async (req, res) => {
         const query = "DELETE FROM Event WHERE id = $1 RETURNING id";
         const values = [eventId];
 
-        return pool.query(query, values)
-            .then((result: { rowCount: number; }) => {
-                // Verifica se algum evento foi deletado
-                return result.rowCount > 0;
-            })
-            .catch((error: any) => {
-                console.error("Erro ao tentar deletar o evento:", error);
-                throw new Error("Erro ao deletar o evento.");
-            });
+        try {
+            const result = await pool.query(query, values);
+            return result.rowCount > 0;
+        } catch (error) {
+            console.error("Erro ao tentar deletar o evento:", error);
+            throw new Error("Erro ao deletar o evento.");
+        }
     };
 
 
