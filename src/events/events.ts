@@ -24,54 +24,44 @@ export namespace EventsHandler {
     const pool = require('../db/db');
 
 
-    /**
-     * Função para tratar a rota HTTP /addNewEvent.
-     * @param req Requisição HTTP do tipo @type {Request}
-     * @param res Resposta HTTP do tipo @type {Response}
-     */
-    export const addNewEventRoute: RequestHandler = async (req, res) => {
-        const { title, description, quotaValue, bettingPeriod, eventDate, organizer } = req.body;
-    
-        // Validação dos parâmetros de entrada
-        if (
-            typeof title === "string" && title.length <= 50 &&
-            typeof description === "string" && description.length <= 150 &&
-            typeof quotaValue === "number" && quotaValue >= 1 &&
-            bettingPeriod && typeof bettingPeriod.start === "string" && typeof bettingPeriod.end === "string" &&
-            eventDate && typeof eventDate.day === "number" && typeof eventDate.month === "number" && typeof eventDate.year === "number" &&
-            typeof organizer === "string"
-        ) {
-            const query = `
-                INSERT INTO Event (title, description, quotaValue, bettingPeriodStart, bettingPeriodEnd, eventDateDay, eventDateMonth, eventDateYear, organizer)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                RETURNING id;
-            `;
-            const values = [
-                title,
-                description,
-                quotaValue,
-                bettingPeriod.start,
-                bettingPeriod.end,
-                eventDate.day,
-                eventDate.month,
-                eventDate.year,
-                organizer
-            ];
-    
-            try {
-                // Inserção no banco de dados
-                const result = await pool.query(query, values);
-                const newEventId = result.rows[0].id;
-    
-                res.status(200).send(`Novo evento adicionado com sucesso. Código: ${newEventId}`);
-            } catch (error) {
-                console.error("Erro ao inserir evento no banco de dados:", error);
-                res.status(500).send("Erro ao adicionar o evento no banco de dados.");
-            }
-        } else {
-            res.status(400).send("Parâmetros inválidos ou faltantes.");
+/**
+ * Função para tratar a rota HTTP /addNewEvent.
+ * @param req Requisição HTTP do tipo @type {Request}
+ * @param res Resposta HTTP do tipo @type {Response}
+ */
+export const addNewEventRoute: RequestHandler = async (req, res) => {
+    const { title, description, organizer, quotaValue } = req.body;
+
+    // Validação dos parâmetros de entrada
+    if (
+        typeof title === "string" && title.length <= 255 &&
+        typeof description === "string" && description.length <= 255 &&
+        typeof organizer === "string" && organizer.includes("@") &&
+        typeof quotaValue === "number" && quotaValue > 0
+    ) {
+        const query = `
+            INSERT INTO Event (title, description, organizer, quotaValue)
+            VALUES ($1, $2, $3, $4)
+            RETURNING id;
+        `;
+        const values = [title, description, organizer, quotaValue];
+
+        try {
+            // Inserção no banco de dados
+            const result = await pool.query(query, values);
+            const newEventId = result.rows[0].id;
+
+            res.status(200).send(`Novo evento adicionado com sucesso. Código: ${newEventId}`);
+        } catch (error) {
+            console.error("Erro ao inserir evento no banco de dados:", error);
+            res.status(500).send("Erro ao adicionar o evento no banco de dados.");
         }
-    };
+    } else {
+        res.status(400).send("Parâmetros inválidos ou faltantes.");
+    }
+};
+
+
     
 
     /**
@@ -204,45 +194,41 @@ export namespace EventsHandler {
      */
     export const evaluateNewEventRoute: RequestHandler = async (req: Request, res: Response) => {
         const { id, approve } = req.body;
-      
+
         // Validar se o ID é um número válido
         if (typeof id !== "number" || id <= 0) {
-          res.status(400).send("ID inválido.");
-          return;
+            res.status(400).send("ID inválido.");
+            return;
         }
-      
+
         // Validar se approve é booleano
         if (typeof approve !== "boolean") {
-          res.status(400).send("O campo 'approve' deve ser um booleano.");
-          return;
-        }
-      
-        try {
-          // Verificar se o evento existe na tabela de pendentes
-          const pendingEventQuery = `SELECT * FROM Event WHERE id = $1`;
-          const pendingEventResult = await pool.query(pendingEventQuery, [id]);
-      
-          if (pendingEventResult.rowCount === 0) {
-            res.status(404).send(`Evento com ID ${id} não encontrado.`);
+            res.status(400).send("O campo 'approve' deve ser um booleano.");
             return;
-          }
-      
-          if (approve) {
-            // Aprovar o evento
-            const approveQuery = `UPDATE Event SET approved = TRUE WHERE id = $1`;
-            await pool.query(approveQuery, [id]);
-            res.status(200).send(`Evento com ID ${id} aprovado com sucesso.`);
-          } else {
-            // Rejeitar o evento
-            const deleteQuery = `DELETE FROM Event WHERE id = $1`;
-            await pool.query(deleteQuery, [id]);
-            res.status(200).send(`Evento com ID ${id} rejeitado e removido.`);
-          }
-        } catch (error) {
-          console.error("Erro ao avaliar evento:", error);
-          res.status(500).send("Erro ao processar a solicitação.");
         }
-      };
+
+        try {
+            // Verificar se o evento existe na tabela
+            const eventQuery = `SELECT * FROM Event WHERE id = $1`;
+            const eventResult = await pool.query(eventQuery, [id]);
+
+            if (eventResult.rowCount === 0) {
+                res.status(404).send(`Evento com ID ${id} não encontrado.`);
+                return;
+            }
+
+            // Atualizar o status de aprovação
+            const newStatus = approve ? 2 : 3; // 2 = approved, 3 = denied
+            const updateStatusQuery = `UPDATE Event SET approval_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`;
+            await pool.query(updateStatusQuery, [newStatus, id]);
+
+            const statusMessage = approve ? "aprovado" : "rejeitado";
+            res.status(200).send(`Evento com ID ${id} ${statusMessage} com sucesso.`);
+        } catch (error) {
+            console.error("Erro ao avaliar evento:", error);
+            res.status(500).send("Erro ao processar a solicitação.");
+        }
+    };
 
           /**
      * Função para finalizar um evento e atualizar seu status.
