@@ -57,6 +57,9 @@ routes.post('/addFunds', WalletHandler.addFunds);
 // Rota para sacar fundos
 routes.post('/withdrawFunds', WalletHandler.withdrawFunds);
 
+// Rota para verificar o saldo
+routes.post('/checkBalance', WalletHandler.checkBalance);
+
 // Rota para apostar em um evento
 routes.post('/betOnEvent', BettingHandler.betOnEvent);
 

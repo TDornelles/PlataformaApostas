@@ -5,12 +5,6 @@ import { EventsHandler } from "../events/events";
 // Namespace para manuseio de apostas e eventos
 export namespace BettingHandler {
 
-    // Interface representando uma aposta
-    export type Bet = {
-        eventId: number;
-        email: string;
-        amount: number;
-    };
 
 
     /**

@@ -230,7 +230,7 @@ export const addNewEventRoute: RequestHandler = async (req, res) => {
         }
     };
 
-          /**
+    /**
      * Função para finalizar um evento e atualizar seu status.
      * @param eventId ID do evento a ser finalizado
      * @returns Promise<boolean> Retorna verdadeiro se o evento foi finalizado com sucesso
@@ -238,10 +238,10 @@ export const addNewEventRoute: RequestHandler = async (req, res) => {
     const finishEvent = async (eventId: number): Promise<boolean> => {
         const query = `
             UPDATE Event 
-            SET status = 'finished', 
-                finishedAt = CURRENT_TIMESTAMP 
+            SET approval_status = 4,
+                updated_at = CURRENT_TIMESTAMP 
             WHERE id = $1 
-            AND status = 'approved' 
+            AND approval_status = 2
             RETURNING id`;
         const values = [eventId];
 
@@ -253,6 +253,7 @@ export const addNewEventRoute: RequestHandler = async (req, res) => {
             throw new Error("Erro ao finalizar o evento.");
         }
     };
+
 
     /**
      * Função para tratar a rota HTTP /finishEvent.
