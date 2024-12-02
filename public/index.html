@@ -130,7 +130,7 @@
 
         async function fetchEvents() {
             try {
-                const response = await fetch('/eventsList');
+                const response = await fetch('/getEventsList');
                 if (!response.ok) throw new Error('Falha ao carregar eventos');
                 events = await response.json();
                 sortAndDisplayEvents();
