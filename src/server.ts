@@ -71,46 +71,6 @@ routes.post('/finishEvent', EventsHandler.finishEventRoute);
 // Rota para buscar eventos por palavras-chave
 routes.get('/searchEvent', BettingHandler.searchEvent);
 
-// Configuração da conexão SSH
-export const connectToSSH = async (): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const conn = new Client();
-    let output = '';
-
-    conn.on('ready', () => {
-      console.log('Conexão SSH estabelecida com sucesso.');
-
-      conn.exec('uptime', (err, stream) => {
-        if (err) return reject(err);
-
-        stream.on('close', (code: number, signal: string | null) => {
-          console.log(`Comando encerrado com código: ${code}`);
-          conn.end();
-          resolve(output);
-        }).on('data', (data: Buffer) => {
-          output += data;
-        }).stderr.on('data', (data: Buffer) => {
-          reject(`Erro: ${data}`);
-        });
-      });
-    }).connect({
-      host: '144.22.145.229',
-      port: 22,
-      username: 'opc',
-      privateKey: fs.readFileSync('/home/windcaller/.ssh/ssh-key-2024-10-29.key')
-    });
-  });
-};
-
-// Rota para testar a conexão SSH
-routes.get('/connectSSH', async (req: Request, res: Response) => {
-  try {
-    const output = await connectToSSH();
-    res.send(`Saída do comando SSH: ${output}`);
-  } catch (error) {
-    res.status(500).send(`Erro ao conectar via SSH: ${error}`);
-  }
-});
 
 server.use(routes);
 
