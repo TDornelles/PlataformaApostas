@@ -116,25 +116,38 @@ export const addNewEventRoute: RequestHandler = async (req, res) => {
      */
     export const getEventsListRoute: RequestHandler = async (req: Request, res: Response) => {
         try {
-            // Consulta SQL para pegar os eventos
+            // Consulta SQL para pegar os eventos com ordem explícita
             const query = `
-                SELECT id, title, description, approval_status
-                FROM Event;
+                SELECT 
+                    id,
+                    title,
+                    description,
+                    approval_status,
+                    updated_at,
+                    quotaValue,
+                    organizer,
+                    betting_end_time
+                FROM Event
+                ORDER BY updated_at DESC
+                LIMIT 100;  -- Protege contra sobrecarga de dados
             `;
 
-            // Executar a consulta SQL
             const result = await pool.query(query);
+            res.status(200).json(result.rows || []);  // Simplifica a lógica do retorno
 
-            // Verificar se existem eventos
-            if (result.rowCount > 0) {
-                // Retorna os eventos encontrados como JSON
-                res.status(200).json(result.rows);
-            } else {
-                res.status(200).json([]); // Retorna array vazio ao invés de erro
-            }
         } catch (error) {
             console.error("Erro ao acessar eventos:", error);
-            res.status(500).send("Erro ao acessar eventos no banco de dados.");
+            // Verifica se é um erro conhecido do PostgreSQL
+            if (error instanceof Error) {
+                res.status(500).json({
+                    error: "Erro ao acessar eventos no banco de dados",
+                    message: error.message
+                });
+            } else {
+                res.status(500).json({
+                    error: "Erro interno do servidor"
+                });
+            }
         }
     };
 
@@ -217,7 +230,13 @@ export const addNewEventRoute: RequestHandler = async (req, res) => {
 
             // Atualizar o status de aprovação
             const newStatus = approve ? 2 : 3; // 2 = approved, 3 = denied
+            console.log(newStatus);
             const updateStatusQuery = `UPDATE Event SET approval_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`;
+            if (newStatus === 2) {
+                // Atualizar o betting_end_time para o momento atual
+                const updateBettingEndTimeQuery = `UPDATE Event SET betting_end_time = CURRENT_TIMESTAMP + INTERVAL '1 month' WHERE id = $1`;
+                await pool.query(updateBettingEndTimeQuery, [id]);
+            }
             await pool.query(updateStatusQuery, [newStatus, id]);
 
             const statusMessage = approve ? "aprovado" : "rejeitado";
@@ -266,6 +285,13 @@ export const addNewEventRoute: RequestHandler = async (req, res) => {
             return;
         }
 
+        // Atualizar o tempo final de apostas para o momento atual
+        try {
+            await updateBettingEndTime(eventId, new Date());
+        } catch (error) {
+            console.error("Erro ao atualizar tempo final de apostas:", error);
+        }
+
         try {
             const success = await finishEvent(eventId);
             if (success) {
@@ -275,6 +301,66 @@ export const addNewEventRoute: RequestHandler = async (req, res) => {
             }
         } catch (error) {
             res.status(500).send("Erro ao tentar finalizar o evento.");
+        }
+    };
+
+    /**
+     * Função para atualizar o tempo final de apostas de um evento.
+     * @param eventId ID do evento
+     * @param endTime Nova data/hora final para apostas
+     * @returns Promise<boolean> Verdadeiro se atualizado com sucesso
+     */
+    const updateBettingEndTime = async (eventId: number, endTime: Date): Promise<boolean> => {
+        const query = `
+            UPDATE Event 
+            SET betting_end_time = $1 
+            WHERE id = $2 
+            AND approval_status = 2
+            RETURNING id`;
+        
+        try {
+            const result = await pool.query(query, [endTime.toISOString(), eventId]);
+            return result.rowCount > 0;
+        } catch (error) {
+            console.error("Erro ao atualizar tempo final de apostas:", error);
+            throw new Error("Erro ao atualizar tempo final de apostas.");
+        }
+    };
+
+    export const updateBettingEndTimeRoute: RequestHandler = async (req: Request, res: Response) => {
+        const { eventId, endTime } = req.body;
+
+        // Validação dos parâmetros
+        if (!eventId || typeof eventId !== "number") {
+            res.status(400).send("ID do evento inválido ou não fornecido.");
+            return;
+        }
+
+        // Validar o formato da data
+        const endTimeDate = new Date(endTime);
+        if (isNaN(endTimeDate.getTime())) {
+            res.status(400).send("Data de término inválida. Use o formato ISO (ex: '2024-03-25T10:00:00Z')");
+            return;
+        }
+
+        // Verificar se a data não está no passado
+        if (endTimeDate < new Date()) {
+            res.status(400).send("A data de término não pode estar no passado.");
+            return;
+        }
+
+        try {
+            const success = await updateBettingEndTime(eventId, endTimeDate);
+            if (success) {
+                res.status(200).json({
+                    message: `Tempo final de apostas atualizado para o evento ${eventId}.`,
+                    endTime: endTimeDate.toISOString()
+                });
+            } else {
+                res.status(404).send("Evento não encontrado ou não está aprovado.");
+            }
+        } catch (error) {
+            res.status(500).send("Erro ao processar a solicitação.");
         }
     };
 

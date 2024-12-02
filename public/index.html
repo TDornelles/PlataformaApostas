@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -25,54 +25,18 @@
             gap: 10px;
         }
 
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 60px;
-            height: 34px;
-        }
-
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 34px;
-        }
-
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 26px;
-            width: 26px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-
-        input:checked + .slider {
-            background-color: #2196F3;
-        }
-
-        input:checked + .slider:before {
-            transform: translateX(26px);
+        .sort-select {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 14px;
         }
 
         .events-list {
             display: grid;
-            gap: 15px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 50px;
+            padding: 5px;
         }
 
         .event-card {
@@ -80,10 +44,26 @@
             padding: 15px;
             border-radius: 8px;
             background-color: #f9f9f9;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (max-width: 1024px) {
+            .events-list {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .events-list {
+                grid-template-columns: 1fr;
+            }
         }
 
         .event-card h3 {
             margin: 0 0 10px 0;
+            color: #333;
         }
 
         .event-info {
@@ -96,12 +76,14 @@
             padding: 20px;
             font-style: italic;
             color: #666;
+            grid-column: 1 / -1;
         }
 
         .error {
             color: red;
             text-align: center;
             padding: 20px;
+            grid-column: 1 / -1;
         }
     </style>
 </head>
@@ -110,11 +92,12 @@
         <h1>Eventos Disponíveis</h1>
         <div class="switch-container">
             <span>Ordenar por:</span>
-            <label class="switch">
-                <input type="checkbox" id="sortToggle">
-                <span class="slider"></span>
-            </label>
-            <span id="sortLabel">Data de Atualização</span>
+            <select id="sortSelect" class="sort-select">
+                <option value="updated_desc">Atualizações recentes</option>
+                <option value="betting_end">Prazo de Apostas</option>
+                <option value="denied">Eventos Negados</option>
+                <option value="finished">Eventos Finalizados</option>
+            </select>
         </div>
     </div>
 
@@ -125,8 +108,7 @@
     <script>
         let events = [];
         const eventsListElement = document.getElementById('eventsList');
-        const sortToggle = document.getElementById('sortToggle');
-        const sortLabel = document.getElementById('sortLabel');
+        const sortSelect = document.getElementById('sortSelect');
 
         async function fetchEvents() {
             try {
@@ -141,30 +123,64 @@
         }
 
         function sortAndDisplayEvents() {
-            const sortedEvents = [...events];
+            let sortedEvents = [...events];
             
-            if (sortToggle.checked) {
-                // Por enquanto, mantém ordenação por data de atualização
-                sortedEvents.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-                sortLabel.textContent = "Mais Recentes";
-            } else {
-                // Ordenar por última atualização
-                sortedEvents.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-                sortLabel.textContent = "Data de Atualização";
+            switch (sortSelect.value) {
+                case 'betting_end':
+                    sortedEvents = sortedEvents
+                        .filter(event => event.approval_status !== 3 && event.approval_status !== 4)
+                        .filter(event => event.betting_end_time)
+                        .sort((a, b) => new Date(a.betting_end_time) - new Date(b.betting_end_time));
+                    break;
+                case 'denied':
+                    sortedEvents = sortedEvents
+                        .filter(event => event.approval_status === 3)
+                        .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+                    break;
+                case 'finished':
+                    sortedEvents = sortedEvents
+                        .filter(event => event.approval_status === 4)
+                        .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+                    break;
+                default: // updated_desc
+                    sortedEvents = sortedEvents
+                        .filter(event => event.approval_status !== 3 && event.approval_status !== 4)
+                        .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
             }
 
-            eventsListElement.innerHTML = sortedEvents.map(event => `
-                <div class="event-card">
-                    <h3>${event.title}</h3>
-                    <div class="event-info">
-                        <p>${event.description || 'Sem descrição'}</p>
-                        <p>Organizador: ${event.organizer || 'Não especificado'}</p>
-                        <p>Valor da Cota: R$ ${event.quotaValue?.toFixed(2) || '0.00'}</p>
-                        <p>Status: ${getStatusText(event.approvalStatus)}</p>
-                        <p>Última atualização: ${new Date(event.updatedAt).toLocaleString()}</p>
+            eventsListElement.innerHTML = sortedEvents.map(event => {
+                const updateDate = formatDate(event.updated_at);
+                const bettingEndTime = event.betting_end_time ? `<p>Prazo para Apostas: ${formatDate(event.betting_end_time)}</p>` : '';
+                
+                return `
+                    <div class="event-card">
+                        <h3>${event.title}</h3>
+                        <div class="event-info">
+                            <p>${event.description || 'Sem descrição'}</p>
+                            <p>Organizador: ${event.organizer || 'Não especificado'}</p>
+                            <p>Valor da Cota: R$ ${event.quotavalue?.toFixed(2) || '0.00'}</p>
+                            <p>Status: ${getStatusText(event.approval_status)}</p>
+                            ${bettingEndTime}
+                            <p>Última atualização: ${updateDate}</p>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
+        }
+
+        function formatDate(dateString) {
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch {
+                return 'Data não disponível';
+            }
         }
 
         function getStatusText(status) {
@@ -178,7 +194,7 @@
         }
 
         // Event Listeners
-        sortToggle.addEventListener('change', sortAndDisplayEvents);
+        sortSelect.addEventListener('change', sortAndDisplayEvents);
 
         // Initial load
         fetchEvents();
