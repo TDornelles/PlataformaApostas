@@ -4,105 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciador de Eventos</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .switch-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .sort-select {
-            padding: 8px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            font-size: 14px;
-        }
-
-        .events-list {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 50px;
-            padding: 5px;
-        }
-
-        .event-card {
-            border: 1px solid #ddd;
-            padding: 15px;
-            border-radius: 8px;
-            background-color: #f9f9f9;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-        }
-
-        @media (max-width: 1024px) {
-            .events-list {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 600px) {
-            .events-list {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .event-card h3 {
-            margin: 0 0 10px 0;
-            color: #333;
-        }
-
-        .event-info {
-            display: grid;
-            gap: 5px;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 20px;
-            font-style: italic;
-            color: #666;
-            grid-column: 1 / -1;
-        }
-
-        .error {
-            color: red;
-            text-align: center;
-            padding: 20px;
-            grid-column: 1 / -1;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <div class="header">
-        <h1>Eventos Disponíveis</h1>
-        <div class="switch-container">
-            <span>Ordenar por:</span>
-            <select id="sortSelect" class="sort-select">
-                <option value="updated_desc">Atualizações recentes</option>
-                <option value="betting_end">Prazo de Apostas</option>
-                <option value="denied">Eventos Negados</option>
-                <option value="finished">Eventos Finalizados</option>
-            </select>
+    <div class="top-bar">
+        <div class="logo-section">
+            <i class="fas fa-calendar-alt logo-icon"></i>
+            <span>BetManeira</span>
+        </div>
+        <div class="user-section">
+            <div class="user-info">
+                <i class="fas fa-user"></i>
+                <span id="username">Convidado</span>
+                <span id="userBalance" class="user-balance"></span>
+            </div>
+            <button class="login-button" id="loginButton">Login</button>
         </div>
     </div>
 
-    <div id="eventsList" class="events-list">
-        <div class="loading">Carregando eventos...</div>
+    <div class="content">
+        <div class="header">
+            <h1>Eventos Disponíveis</h1>
+            <div class="switch-container">
+                <span>Ordenar por:</span>
+                <select id="sortSelect" class="sort-select">
+                    <option value="updated_desc">Atualizações recentes</option>
+                    <option value="betting_end">Prazo de Apostas</option>
+                    <option value="denied">Eventos Negados</option>
+                    <option value="finished">Eventos Finalizados</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="eventsList" class="events-list">
+            <div class="loading">Carregando eventos...</div>
+        </div>
     </div>
 
     <script>
@@ -201,6 +138,52 @@
 
         // Atualizar a lista a cada 30 segundos
         setInterval(fetchEvents, 30000);
+
+        function updateUserDisplay(userData) {
+            const usernameElement = document.getElementById('username');
+            const userBalanceElement = document.getElementById('userBalance');
+            const loginButton = document.getElementById('loginButton');
+            
+            if (userData) {
+                usernameElement.textContent = userData.name;
+                userBalanceElement.textContent = `R$ ${userData.balance.toFixed(2)}`;
+                loginButton.textContent = 'Logout';
+            } else {
+                usernameElement.textContent = 'Convidado';
+                userBalanceElement.textContent = '';
+                loginButton.textContent = 'Login';
+            }
+        }
+
+        // Check if user is logged in on page load
+        function checkLoginStatus() {
+            const token = localStorage.getItem('token');
+            const userData = JSON.parse(localStorage.getItem('userData'));
+            
+            if (token && userData) {
+                updateUserDisplay(userData);
+            } else {
+                updateUserDisplay(null);
+            }
+        }
+
+        // Call on page load
+        checkLoginStatus();
+
+        // Example login button handler
+        document.getElementById('loginButton').addEventListener('click', () => {
+            window.location.href = '/login.html';
+        });
+
+        // Store token and user data in localStorage
+        function handleLoginSuccess(response) {
+            localStorage.setItem('token', response.token);
+            localStorage.setItem('userData', JSON.stringify(response.userData));
+            
+            // Update display
+            updateUserDisplay(response.userData);
+        }
     </script>
+    <script src="auth.js"></script>
 </body>
 </html> 

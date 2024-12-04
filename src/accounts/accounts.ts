@@ -5,19 +5,8 @@ import jwt from "jsonwebtoken";
         Nampespace que contém tudo sobre "contas de usuários"
     */
     export namespace AccountsHandler {
-        
-        /**
-         * Tipo UserAccount
-         */
-        export type UserAccount = {
-            name:string;
-            email:string;
-            password:string;
-            birthdate:string; 
-            isAdmin:boolean;
-        };
 
-        
+    
         const pool = require('../db/db');
 
     export const createAccountRoute: RequestHandler = async (req, res) => {
@@ -54,31 +43,36 @@ import jwt from "jsonwebtoken";
     export const loginRoute: RequestHandler = async (req, res) => {
         const { email, password } = req.body;
     
-        // Validação básica dos parâmetros
         if (!email || !password) {
             res.status(400).send("Parâmetros de login faltando.");
             return;
         }
     
         const query = `
-            SELECT id FROM UserAccount WHERE email = $1 AND password = $2;
+            SELECT id, name, balance FROM UserAccount WHERE email = $1 AND password = $2;
         `;
         const values = [email, password];
     
         try {
-            // Consulta ao banco de dados
             const result = await pool.query(query, values);
     
-            // Verificar se o usuário foi encontrado
             if (result.rows.length === 0) {
                 res.status(401).send("Credenciais inválidas.");
                 return;
             }
     
-            const userId = result.rows[0].id;
-    
-            // Login bem-sucedido
-            res.status(200).send(`Login bem-sucedido! Bem-vindo, usuário ${userId}.`);
+            const user = result.rows[0];
+            const token = jwt.sign({ userId: user.id }, 'your_secret_key', { expiresIn: '1h' });
+
+            res.status(200).json({
+                message: `Login bem-sucedido!`,
+                token,
+                user: {
+                    id: user.id,
+                    name: user.name,
+                    balance: user.balance
+                }
+            });
         } catch (error) {
             console.error("Erro ao executar a query:", error);
             res.status(500).send("Erro interno do servidor.");

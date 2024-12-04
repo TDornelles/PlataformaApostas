@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criar Conta - EventManager</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="top-bar">
+        <div class="logo-section">
+            <i class="fas fa-calendar-alt logo-icon"></i>
+            <span>EventManager</span>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="login-container">
+            <h2>Criar Conta</h2>
+            <form id="signupForm" class="login-form">
+                <div class="form-group">
+                    <label for="name">Nome:</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Senha:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirmar Senha:</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" required>
+                </div>
+                <button type="submit" class="login-submit-button">Criar Conta</button>
+            </form>
+            <div class="login-footer">
+                <span>Já tem uma conta?</span>
+                <a href="/login.html" class="login-link">Fazer Login</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('signupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (password !== confirmPassword) {
+                alert('As senhas não coincidem');
+                return;
+            }
+
+            try {
+                const response = await fetch('/createAccount', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name, email, password }),
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    alert('Conta criada com sucesso!');
+                    window.location.href = '/login.html';
+                } else {
+                    const error = await response.json();
+                    alert(error.message || 'Erro ao criar conta');
+                }
+            } catch (error) {
+                console.error('Erro ao criar conta:', error);
+                alert('Erro ao criar conta. Tente novamente.');
+            }
+        });
+    </script>
+</body>
+</html> 
