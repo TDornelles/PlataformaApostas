@@ -10,7 +10,7 @@
 <body>
     <div class="top-bar">
         <div class="logo-section">
-            <i class="fas fa-calendar-alt logo-icon"></i>
+            <i class="fas fa-dollar-sign logo-icon"></i>
             <span>BetManeira</span>
         </div>
         <div class="user-section">
@@ -163,11 +163,8 @@
             
             console.log(userData);
 
-            if (token && userData) {
-                updateUserDisplay(userData);
-            } else {
-                updateUserDisplay(null);
-            }
+            updateUserDisplay(userData);
+
         }
 
         // Call on page load

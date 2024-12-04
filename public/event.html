@@ -27,7 +27,10 @@
             try {
                 const response = await fetch('/getEventsList');
                 const events = await response.json();
-                const eventDetails = events.find(event => event.id === eventId);
+                console.log('Event ID from URL:', eventId, 'Type:', typeof eventId);
+                console.log('Available events:', events);
+                const eventDetails = events.find(event => event.id === parseInt(eventId));
+                console.log('Found event:', eventDetails);
                 if (!eventDetails) throw new Error('Evento não encontrado');
                 displayEventDetails(eventDetails);
             } catch (error) {
