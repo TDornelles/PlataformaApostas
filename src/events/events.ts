@@ -233,9 +233,13 @@ export const addNewEventRoute: RequestHandler = async (req, res) => {
             console.log(newStatus);
             const updateStatusQuery = `UPDATE Event SET approval_status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`;
             if (newStatus === 2) {
-                // Atualizar o betting_end_time para o momento atual
-                const updateBettingEndTimeQuery = `UPDATE Event SET betting_end_time = CURRENT_TIMESTAMP + INTERVAL '1 month' WHERE id = $1`;
-                await pool.query(updateBettingEndTimeQuery, [id]);
+                // Atualizar o betting_start_time e betting_end_time
+                const updateBettingTimesQuery = `
+                    UPDATE Event 
+                    SET betting_start_time = CURRENT_TIMESTAMP,
+                        betting_end_time = CURRENT_TIMESTAMP + INTERVAL '1 month' 
+                    WHERE id = $1`;
+                await pool.query(updateBettingTimesQuery, [id]);
             }
             await pool.query(updateStatusQuery, [newStatus, id]);
 
