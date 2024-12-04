@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes do Evento</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="event-details">
+        <h1 id="eventTitle">Carregando...</h1>
+        <div id="eventInfo" class="event-info">
+            <!-- Event details will be loaded here -->
+        </div>
+        <div class="bet-section">
+            <h2>Faça sua Aposta</h2>
+            <input type="number" id="betAmount" placeholder="Valor da Aposta" min="0">
+            <button id="placeBetButton">Apostar</button>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const eventId = urlParams.get('id');
+
+        async function fetchEventDetails() {
+            try {
+                const response = await fetch('/getEventsList');
+                const events = await response.json();
+                const eventDetails = events.find(event => event.id === eventId);
+                if (!eventDetails) throw new Error('Evento não encontrado');
+                displayEventDetails(eventDetails);
+            } catch (error) {
+                console.error('Erro:', error);
+                document.getElementById('eventInfo').innerHTML = '<div class="error">Erro ao carregar detalhes do evento. Tente novamente mais tarde.</div>';
+            }
+        }
+
+        function displayEventDetails(event) {
+            document.getElementById('eventTitle').textContent = event.title;
+            document.getElementById('eventInfo').innerHTML = `
+                <p>${event.description || 'Sem descrição'}</p>
+                <p>Organizador: ${event.organizer || 'Não especificado'}</p>
+                <p>Valor da Cota: R$ ${event.quotavalue?.toFixed(2) || '0.00'}</p>
+                <p>Status: ${getStatusText(event.approval_status)}</p>
+                <p>Prazo para Apostas: ${formatDate(event.betting_end_time)}</p>
+                <p>Última atualização: ${formatDate(event.updated_at)}</p>
+            `;
+        }
+
+        function formatDate(dateString) {
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch {
+                return 'Data não disponível';
+            }
+        }
+
+        function getStatusText(status) {
+            const statusMap = {
+                1: 'Pendente',
+                2: 'Aprovado',
+                3: 'Negado',
+                4: 'Finalizado'
+            };
+            return statusMap[status] || 'Desconhecido';
+        }
+
+        document.getElementById('placeBetButton').addEventListener('click', () => {
+            const betAmount = document.getElementById('betAmount').value;
+            if (betAmount > 0) {
+                // Handle bet placement logic here
+                alert(`Aposta de R$ ${betAmount} colocada com sucesso!`);
+            } else {
+                alert('Por favor, insira um valor de aposta válido.');
+            }
+        });
+
+        // Initial load
+        fetchEventDetails();
+    </script>
+</body>
+</html> 

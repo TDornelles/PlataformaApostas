@@ -90,7 +90,7 @@
                 const bettingEndTime = event.betting_end_time ? `<p>Prazo para Apostas: ${formatDate(event.betting_end_time)}</p>` : '';
                 
                 return `
-                    <div class="event-card">
+                    <div class="event-card" onclick="viewEventDetails(${event.id})">
                         <h3>${event.title}</h3>
                         <div class="event-info">
                             <p>${event.description || 'Sem descrição'}</p>
@@ -103,6 +103,7 @@
                     </div>
                 `;
             }).join('');
+            console.log(localStorage.getItem('userData'));
         }
 
         function formatDate(dateString) {
@@ -160,6 +161,8 @@
             const token = localStorage.getItem('token');
             const userData = JSON.parse(localStorage.getItem('userData'));
             
+            console.log(userData);
+
             if (token && userData) {
                 updateUserDisplay(userData);
             } else {
@@ -172,7 +175,15 @@
 
         // Example login button handler
         document.getElementById('loginButton').addEventListener('click', () => {
-            window.location.href = '/login.html';
+            if (isUserLoggedIn()) {
+                // Se estiver logado, faz logout
+                localStorage.removeItem('token');
+                localStorage.removeItem('userData');
+                updateUserDisplay(null);
+            } else {
+                // Se não estiver logado, redireciona para página de login
+                window.location.href = '/login.html';
+            }
         });
 
         // Store token and user data in localStorage
@@ -183,7 +194,18 @@
             // Update display
             updateUserDisplay(response.userData);
         }
+
+        function viewEventDetails(eventId) {
+            window.location.href = `/event.html?id=${eventId}`;
+        }
+
+        function isUserLoggedIn() {
+            const token = localStorage.getItem('token');
+            const userData = localStorage.getItem('userData');
+            return token !== null && userData !== null;
+        }
     </script>
+    created initial frontend
     <script src="auth.js"></script>
 </body>
 </html> 
