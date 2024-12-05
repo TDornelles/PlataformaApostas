@@ -20,11 +20,6 @@ export namespace BettingHandler {
     export const betOnEvent: RequestHandler = async (req: Request, res: Response): Promise<void> => {
         const { email, eventId, amount } = req.body;
 
-        // Basic parameter validation
-        if (!email || !eventId || !amount || amount <= 0) {
-            res.status(400).json({ error: "Parâmetros inválidos." });
-            return;
-        }
 
         try {
             const pool = require('../db/db');

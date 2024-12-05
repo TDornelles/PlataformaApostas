@@ -116,25 +116,30 @@
                 const eventId = urlParams.get('id');
 
                 // Make API call to place bet
-                const response = await fetch('/betOnEvent', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        email: userData.email,
-                        eventId: eventId,
-                        amount: betAmount
-                    })
-                });
+                try {
+                    const response = await fetch('/betOnEvent', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            email: userData.email,
+                            eventId: eventId,
+                            amount: betAmount
+                        })
+                    });
 
-                if (response.ok) {
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Erro ao processar aposta');
+                    }
+
                     const result = await response.json();
                     alert(`Aposta de ${result.quotas} cota(s) (R$ ${betAmount.toFixed(2)}) colocada com sucesso!`);
                     location.reload(); // Refresh page to show updated state
-                } else {
-                    const error = await response.json();
-                    alert(error.error);
+                } catch (error) {
+                    console.error('Erro ao fazer aposta:', error);
+                    alert(error.message || 'Erro ao processar a aposta. Tente novamente.');
                 }
             } catch (error) {
                 console.error('Erro:', error);
