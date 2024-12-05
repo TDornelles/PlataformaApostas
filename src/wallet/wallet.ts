@@ -52,7 +52,7 @@ export namespace WalletHandler {
      * @param req Requisição HTTP contendo userId
      * @param res Resposta HTTP 
      */
-    export const checkBalance: RequestHandler = async (req: Request, res: Response) => {
+    export const checkBalanceRoute: RequestHandler = async (req: Request, res: Response) => {
         const { userId } = req.body;
 
         // Validação básica

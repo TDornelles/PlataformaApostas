@@ -39,6 +39,8 @@ class Header extends HTMLElement {
         const usernameElement = document.getElementById('username');
         const userBalanceElement = document.getElementById('userBalance');
         const loginButton = document.getElementById('loginButton');
+
+        console.log(userData);
         
         if (userData) {
             usernameElement.textContent = userData.name;
