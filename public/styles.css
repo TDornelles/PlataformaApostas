@@ -86,50 +86,50 @@ body {
 }
 
 .top-bar {
-    background-color: #333;
-    color: white;
-    padding: 10px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    padding: 1rem 2rem;
+    background-color: #f8f9fa;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .logo-section {
     display: flex;
     align-items: center;
-    gap: 10px;
-}
-
-.logo-icon {
-    width: 24px;
-    height: 24px;
+    gap: 0.5rem;
+    font-size: 1.25rem;
+    font-weight: bold;
 }
 
 .user-section {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 1rem;
 }
 
 .user-info {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.5rem;
+}
+
+.user-balance {
+    margin-left: 0.5rem;
+    font-weight: bold;
 }
 
 .login-button {
-    background-color: #4CAF50;
-    color: white;
+    padding: 0.5rem 1rem;
     border: none;
-    padding: 8px 16px;
     border-radius: 4px;
+    background-color: #007bff;
+    color: white;
     cursor: pointer;
-    font-size: 14px;
 }
 
 .login-button:hover {
-    background-color: #45a049;
+    background-color: #0056b3;
 }
 
 .login-container {

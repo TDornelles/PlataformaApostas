@@ -28,6 +28,10 @@
                     <input type="email" id="email" name="email" required>
                 </div>
                 <div class="form-group">
+                    <label for="birthdate">Data de Nascimento:</label>
+                    <input type="date" id="birthdate" name="birthdate" required>
+                </div>
+                <div class="form-group">
                     <label for="password">Senha:</label>
                     <input type="password" id="password" name="password" required>
                 </div>
@@ -52,6 +56,22 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
+            const birthdate = document.getElementById('birthdate').value;
+            const isAdmin = false;
+
+            const today = new Date();
+            const birthdateDate = new Date(birthdate);
+            const age = today.getFullYear() - birthdateDate.getFullYear();
+            const monthDiff = today.getMonth() - birthdateDate.getMonth();
+            
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthdateDate.getDate())) {
+                age--;
+            }
+
+            if (age < 18) {
+                alert('Você precisa ter pelo menos 18 anos para se cadastrar.');
+                return;
+            }
 
             if (password !== confirmPassword) {
                 alert('As senhas não coincidem');
@@ -64,7 +84,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ name, email, password }),
+                    body: JSON.stringify({ name, email, password, birthdate, isAdmin }),
                 });
 
                 if (response.ok) {

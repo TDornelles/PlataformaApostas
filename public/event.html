@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detalhes do Evento</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
+    <header-component></header-component>
     <div class="event-details">
         <h1 id="eventTitle">Carregando...</h1>
         <div id="eventInfo" class="event-info">
@@ -76,14 +78,29 @@
             return statusMap[status] || 'Desconhecido';
         }
 
+        function updateTotalValue(quotaValue) {
+            const quotas = parseInt(document.getElementById('quotaAmount').value) || 0;
+            const total = quotas * quotaValue;
+            document.getElementById('totalValue').textContent = `Total: R$ ${total.toFixed(2)}`;
+        }
+
         document.getElementById('placeBetButton').addEventListener('click', () => {
-            const betAmount = document.getElementById('betAmount').value;
-            if (betAmount > 0) {
-                // Handle bet placement logic here
-                alert(`Aposta de R$ ${betAmount} colocada com sucesso!`);
-            } else {
-                alert('Por favor, insira um valor de aposta válido.');
+            const quotas = parseInt(document.getElementById('quotaAmount').value) || 0;
+            const quotaValue = parseFloat(document.getElementById('eventInfo').querySelector('p:nth-child(3)').textContent.split('R$')[1]);
+            const total = quotas * quotaValue;
+            
+            if (quotas <= 0) {
+                alert('Por favor, insira uma quantidade válida de cotas.');
+                return;
             }
+
+            // Verifica se o valor total é múltiplo do valor da cota
+            if (total % quotaValue !== 0) {
+                alert(`O valor da aposta deve ser um múltiplo de R$ ${quotaValue.toFixed(2)}`);
+                return;
+            }
+
+            alert(`Aposta de ${quotas} cota(s) (R$ ${total.toFixed(2)}) colocada com sucesso!`);
         });
 
         // Initial load

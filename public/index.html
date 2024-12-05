@@ -8,20 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <div class="top-bar">
-        <div class="logo-section">
-            <i class="fas fa-dollar-sign logo-icon"></i>
-            <span>BetManeira</span>
-        </div>
-        <div class="user-section">
-            <div class="user-info">
-                <i class="fas fa-user"></i>
-                <span id="username">Convidado</span>
-                <span id="userBalance" class="user-balance"></span>
-            </div>
-            <button class="login-button" id="loginButton">Login</button>
-        </div>
-    </div>
+    <header-component></header-component>
 
     <div class="content">
         <div class="header">
@@ -140,69 +127,11 @@
         // Atualizar a lista a cada 30 segundos
         setInterval(fetchEvents, 30000);
 
-        function updateUserDisplay(userData) {
-            const usernameElement = document.getElementById('username');
-            const userBalanceElement = document.getElementById('userBalance');
-            const loginButton = document.getElementById('loginButton');
-            
-            if (userData) {
-                usernameElement.textContent = userData.name;
-                userBalanceElement.textContent = `R$ ${userData.balance.toFixed(2)}`;
-                loginButton.textContent = 'Logout';
-            } else {
-                usernameElement.textContent = 'Convidado';
-                userBalanceElement.textContent = '';
-                loginButton.textContent = 'Login';
-            }
-        }
-
-        // Check if user is logged in on page load
-        function checkLoginStatus() {
-            const token = localStorage.getItem('token');
-            const userData = JSON.parse(localStorage.getItem('userData'));
-            
-            console.log(userData);
-
-            updateUserDisplay(userData);
-
-        }
-
-        // Call on page load
-        checkLoginStatus();
-
-        // Example login button handler
-        document.getElementById('loginButton').addEventListener('click', () => {
-            if (isUserLoggedIn()) {
-                // Se estiver logado, faz logout
-                localStorage.removeItem('token');
-                localStorage.removeItem('userData');
-                updateUserDisplay(null);
-            } else {
-                // Se não estiver logado, redireciona para página de login
-                window.location.href = '/login.html';
-            }
-        });
-
-        // Store token and user data in localStorage
-        function handleLoginSuccess(response) {
-            localStorage.setItem('token', response.token);
-            localStorage.setItem('userData', JSON.stringify(response.userData));
-            
-            // Update display
-            updateUserDisplay(response.userData);
-        }
-
         function viewEventDetails(eventId) {
             window.location.href = `/event.html?id=${eventId}`;
         }
-
-        function isUserLoggedIn() {
-            const token = localStorage.getItem('token');
-            const userData = localStorage.getItem('userData');
-            return token !== null && userData !== null;
-        }
     </script>
-    created initial frontend
+    <script src="components/header.js"></script>
     <script src="auth.js"></script>
 </body>
 </html> 
