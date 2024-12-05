@@ -8,7 +8,7 @@ class Header extends HTMLElement {
             <div class="top-bar">
                 <div class="logo-section">
                     <i class="fas fa-dollar-sign logo-icon"></i>
-                    <span>BetManeira</span>
+                    <a href="/" style="text-decoration: none; color: inherit;"><span>BetManeira</span></a>
                 </div>
                 <div class="user-section">
                     <div class="user-info">
@@ -39,16 +39,14 @@ class Header extends HTMLElement {
         const usernameElement = document.getElementById('username');
         const userBalanceElement = document.getElementById('userBalance');
         const loginButton = document.getElementById('loginButton');
-
-        console.log(userData);
         
-        if (userData) {
+        if (userData && userData.name && userData.balance !== undefined) {
             usernameElement.textContent = userData.name;
-            userBalanceElement.textContent = `R$ ${userData.balance.toFixed(2)}`;
+            userBalanceElement.textContent = `R$ ${Number(userData.balance).toFixed(2)}`;
             loginButton.textContent = 'Logout';
         } else {
             usernameElement.textContent = 'Convidado';
-            userBalanceElement.textContent = '';
+            userBalanceElement.textContent = 'R$ 0,00';
             loginButton.textContent = 'Login';
         }
     }

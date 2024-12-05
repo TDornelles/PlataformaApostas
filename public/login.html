@@ -50,7 +50,12 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    // Store user data or token as needed
+                    localStorage.setItem('userData', JSON.stringify(data.user));
+                    
+                    // Update header display with the nested user data
+                    const headerComponent = document.querySelector('header-component');
+                    headerComponent.updateUserDisplay(data.user);
+                    
                     window.location.href = '/'; // Redirect to home page
                 } else {
                     alert('Email ou senha inválidos');
