@@ -41,7 +41,7 @@ class Header extends HTMLElement {
         const loginButton = document.getElementById('loginButton');
         
         if (userData && userData.name && userData.balance !== undefined) {
-            usernameElement.textContent = userData.name;
+            usernameElement.innerHTML = `<a href="profile.html" style="text-decoration: none; color: inherit;">${userData.name}</a>`;
             userBalanceElement.textContent = `R$ ${Number(userData.balance).toFixed(2)}`;
             loginButton.textContent = 'Logout';
         } else {

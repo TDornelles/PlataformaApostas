@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil do Usuário - BetManeira</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: white;
+        }
+
+        .profile-container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        .profile-header {
+            background-color: #2d2d2d;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .profile-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .profile-avatar {
+            background-color: #404040;
+            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .profile-avatar i {
+            font-size: 48px;
+            color: #808080;
+        }
+
+        .user-details h1 {
+            margin: 0;
+            color: #00ff00;
+            font-size: 2em;
+        }
+
+        .balance-card {
+            background-color: #404040;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .balance-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .balance-info {
+            flex: 1;
+        }
+
+        .balance-label {
+            font-size: 1.2em;
+            color: #808080;
+            margin-bottom: 10px;
+        }
+
+        .balance-amount {
+            font-size: 2em;
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .balance-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .deposit-button {
+            background-color: #00aa00;
+        }
+
+        .deposit-button:hover {
+            background-color: #008800;
+        }
+
+        .withdraw-button {
+            background-color: #aa0000;
+        }
+
+        .withdraw-button:hover {
+            background-color: #880000;
+        }
+    </style>
+</head>
+<body>
+    <header-component></header-component>
+
+    <div class="profile-container">
+        <div class="profile-header">
+            <div class="profile-info">
+                <div class="profile-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="user-details">
+                    <h1 id="profileUsername">Carregando...</h1>
+                </div>
+            </div>
+            <div class="balance-card">
+                <div class="balance-container">
+                    <div class="balance-info">
+                        <div class="balance-label">Saldo Atual</div>
+                        <div class="balance-amount" id="profileBalance">R$ 0,00</div>
+                    </div>
+                    <div class="balance-actions">
+                        <button class="action-button deposit-button">
+                            <i class="fas fa-plus"></i>
+                            Depositar
+                        </button>
+                        <button class="action-button withdraw-button">
+                            <i class="fas fa-minus"></i>
+                            Sacar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="components/header.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const userData = JSON.parse(localStorage.getItem('userData'));
+            
+            if (!userData) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const profileUsername = document.getElementById('profileUsername');
+            const profileBalance = document.getElementById('profileBalance');
+
+            profileUsername.textContent = userData.name;
+            profileBalance.textContent = `R$ ${Number(userData.balance).toFixed(2)}`;
+
+            // Add button event listeners
+            document.querySelector('.deposit-button').addEventListener('click', async () => {
+                const userData = JSON.parse(localStorage.getItem('userData'));
+                if (!userData || !userData.id) {
+                    alert('Usuário não identificado. Por favor, faça login novamente.');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const amount = parseFloat(prompt('Digite o valor do depósito:'));
+                
+                if (isNaN(amount) || amount <= 0) {
+                    alert('Por favor, insira um valor válido.');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/addFunds', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            userId: userData.id.toString(),
+                            amount: amount
+                        })
+                    });
+
+                    if (response.ok) {
+                        const message = await response.text();
+                        alert(message);
+                        // Opcional: atualizar a exibição do saldo na página
+                        location.reload();
+                    } else {
+                        const error = await response.text();
+                        alert(`Erro: ${error}`);
+                    }
+                } catch (error) {
+                    alert('Erro ao processar o depósito. Tente novamente.');
+                    console.error('Erro:', error);
+                }
+            });
+
+            document.querySelector('.withdraw-button').addEventListener('click', async () => {
+                const userData = JSON.parse(localStorage.getItem('userData'));
+                if (!userData || !userData.id) {
+                    alert('Usuário não identificado. Por favor, faça login novamente.');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const amount = parseFloat(prompt('Digite o valor do saque:'));
+                
+                if (isNaN(amount) || amount <= 0) {
+                    alert('Por favor, insira um valor válido.');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/withdrawFunds', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            userId: userData.id.toString(),
+                            amount: amount
+                        })
+                    });
+
+                    if (response.ok) {
+                        const message = await response.text();
+                        alert(message);
+                        // Opcional: atualizar a exibição do saldo na página
+                        location.reload();
+                    } else {
+                        const error = await response.text();
+                        alert(`Erro: ${error}`);
+                    }
+                } catch (error) {
+                    alert('Erro ao processar o saque. Tente novamente.');
+                    console.error('Erro:', error);
+                }
+            });
+        });
+    </script>
+</body>
+</html> 
